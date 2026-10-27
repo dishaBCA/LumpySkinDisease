@@ -81,18 +81,35 @@ document.addEventListener("DOMContentLoaded", () => {
     predictionResult.classList.add("hidden");
     try {
       const response = await fetch("/predict", { method: "POST", body: data });
-      const result = await response.json();
+      const raw = await response.text();
+      let result;
+      try { result = JSON.parse(raw); }
+      catch { throw new Error("The prediction server returned an incomplete response. It may be restarting or processing slowly. Please try again."); }
       if (!response.ok) throw new Error(result.error || "Prediction failed.");
       const title = document.createElement("h3"); title.textContent = "Screening result";
       const label = document.createElement("p"); label.className = "result-label"; label.textContent = result.prediction;
       const confidence = document.createElement("p"); confidence.className = "confidence"; confidence.textContent = "Model confidence: " + Number(result.confidence).toFixed(1) + "%";
+      const scores = document.createElement("div");
+      if (result.class_scores && typeof result.class_scores === "object") {
+        Object.entries(result.class_scores).forEach(([name, value]) => {
+          const pct = Math.max(0, Math.min(100, Number(value) || 0));
+          const row = document.createElement("div"); row.className = "score-row";
+          const heading = document.createElement("div"); heading.className = "score-heading";
+          const nameEl = document.createElement("span"); nameEl.textContent = name;
+          const valueEl = document.createElement("span"); valueEl.textContent = pct.toFixed(1) + "%";
+          heading.append(nameEl, valueEl);
+          const track = document.createElement("div"); track.className = "score-track";
+          const fill = document.createElement("div"); fill.className = "score-fill"; fill.style.width = pct + "%";
+          track.appendChild(fill); row.append(heading, track); scores.appendChild(row);
+        });
+      }
       const note = document.createElement("p"); note.textContent = "This result is not a veterinary diagnosis. Ask a qualified veterinarian to assess the animal.";
-      predictionResult.replaceChildren(title, label, confidence, note); predictionResult.classList.remove("hidden");
+      predictionResult.replaceChildren(title, label, confidence, scores, note); predictionResult.classList.remove("hidden");
       predictionMessage.textContent = "Analysis complete."; predictionMessage.className = "status-message success";
     } catch (error) {
       predictionMessage.textContent = error.message || "Could not connect to the prediction server. Check that the Flask app is running and the model file is installed."; predictionMessage.className = "status-message error";
     } finally {
-      predictButton.disabled = false; predictButton.textContent = "Analyze image";
+      predictButton.disabled = false; predictButton.textContent = "Run AI screening →";
     }
   });
 });
