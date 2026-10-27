@@ -1,0 +1,19 @@
+# Trained model binaries are hosted separately, not committed to this public repository
+*.keras
+*.h5
+*.hdf5
+*.tflite
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+instance/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
